@@ -69,32 +69,36 @@ export async function updateUser(data){
 }
 
 
-export async function getUserOnboardingStatus(){
-    const { userId } = await auth();
-    if(!userId) throw new Error("Unauthorized");
 
-    const user = await db.user.findUnique({
-        where:{
-            clerkUserId: userId,
-        },
-    });
-    if(!user) throw new Error("User not Found");
+export async function getUserOnboardingStatus() {
+  try {
+    const { userId } = await auth();
 
-    try {
-       const user = await db.user.findUnique({
-            where:{
-                clerkUserId: userId,
-            },
-            select: {
-                industry: true,
-            },
-       });
+    if (!userId) {
+      console.warn("User is not authenticated");
+      return { isOnboarded: false };
+    }
 
-    return{
-       isOnboarded: !!user?.industry,
-    };
-    } catch (error) {
-        console.error("Error checking onboarding status:", error.message);
-        throw new Error(`Failed to update profile: ${error?.message || JSON.stringify(error)}`);
-    }
+    const user = await db.user.findUnique({
+      where: {
+        clerkUserId: userId,
+      },
+      select: {
+        industry: true,
+      },
+    });
+
+    if (!user) {
+      console.warn(`No user found in DB for Clerk ID: ${userId}`);
+      return { isOnboarded: false };
+    }
+
+    return {
+      isOnboarded: !!user.industry,
+    };
+
+  } catch (error) {
+    console.error("Error in getUserOnboardingStatus():", error);
+    return { isOnboarded: false };
+  }
 }
